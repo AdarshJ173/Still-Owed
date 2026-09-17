@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Still Owed"
+description = "A private casebook for keeping a clear, source-linked history of a stuck online-shopping return, preserving changing support promises and preparing a factual follow-up."
+version = "1.0.0"
+id = "artifacts/still-owed"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24329
+
+[services.development]
+run = "pnpm --filter @workspace/still-owed run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/still-owed", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/still-owed/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24329"
+BASE_PATH = "/"

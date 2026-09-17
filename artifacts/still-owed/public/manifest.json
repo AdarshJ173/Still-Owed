@@ -1,0 +1,18 @@
+{
+  "name": "Still Owed",
+  "short_name": "Still Owed",
+  "start_url": "/cases",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F5F3EE",
+  "theme_color": "#24566D",
+  "description": "A private casebook for a return that keeps changing.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
