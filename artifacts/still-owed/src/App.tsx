@@ -1592,6 +1592,189 @@ function CaseDetail() {
               <span className="eyebrow">Current status</span>
               <h2>{currentStateNotice}</h2>
             </section>
+            {/* Signature Contradiction Comparison Panel */}
+            {(() => {
+              const contradictionLink = data.links.find(
+                (l) => l.relation === "changed_date" || l.relation === "changed_explanation",
+              );
+              const p1 = contradictionLink
+                ? data.records.find((r) => r.id === contradictionLink.earlierRecordId)
+                : promises.length >= 2
+                  ? promises[0]
+                  : null;
+              const p2 = contradictionLink
+                ? data.records.find((r) => r.id === contradictionLink.laterRecordId)
+                : promises.length >= 2
+                  ? promises[promises.length - 1]
+                  : null;
+
+              if (!p1 || !p2 || p1.id === p2.id) return null;
+
+              return (
+                <section
+                  className="contradiction-comparison-panel"
+                  style={{
+                    margin: "1.75rem 0 2.25rem",
+                    background: "var(--white)",
+                    border: "2px solid var(--saffron)",
+                    borderRadius: "var(--radius)",
+                    padding: "1.75rem",
+                    boxShadow: "6px 6px 0 var(--saffron-pale)",
+                  }}
+                  data-testid="panel-contradiction-comparison"
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "1rem",
+                      flexWrap: "wrap",
+                      marginBottom: "1.25rem",
+                      borderBottom: "1px solid var(--line)",
+                      paddingBottom: ".85rem",
+                    }}
+                  >
+                    <div>
+                      <span className="eyebrow" style={{ color: "var(--saffron)" }}>
+                        Contradiction Timeline · Core Proof
+                      </span>
+                      <h3 style={{ margin: ".25rem 0 0", fontFamily: "var(--font-serif)", fontSize: "1.65rem", fontWeight: 500 }}>
+                        Changed Commitment · Original Preserved
+                      </h3>
+                    </div>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: ".4rem",
+                        background: "var(--saffron-pale)",
+                        color: "var(--ink)",
+                        padding: ".35rem .75rem",
+                        borderRadius: "2px",
+                        fontWeight: 600,
+                        fontSize: ".82rem",
+                      }}
+                    >
+                      <span>⚠️ Timeframe changed in later conversation</span>
+                    </span>
+                  </div>
+
+                  <div className="side-by-side-grid">
+                    {/* Left: Original Promise */}
+                    <div
+                      style={{
+                        padding: "1.25rem",
+                        background: "var(--paper-deep)",
+                        border: "1px solid var(--line)",
+                        borderRadius: "var(--radius)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          fontSize: ".78rem",
+                          color: "var(--ink-soft)",
+                          fontFamily: "var(--font-mono)",
+                          marginBottom: ".5rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <span>INITIAL SUPPORT COMMITMENT</span>
+                        <span>{formatDate(p1.reportedAt)}</span>
+                      </div>
+                      <blockquote
+                        style={{
+                          margin: "0 0 .75rem",
+                          fontFamily: "var(--font-serif)",
+                          fontSize: "1.25rem",
+                          lineHeight: 1.25,
+                        }}
+                      >
+                        “{p1.verbatimText}”
+                      </blockquote>
+                      <div style={{ display: "flex", gap: ".5rem", flexWrap: "wrap", fontSize: ".8rem" }}>
+                        <span style={{ padding: ".2rem .5rem", background: "var(--blue-pale)", color: "var(--blue)", borderRadius: "2px", fontWeight: 600 }}>
+                          Stated Window: {p1.promise?.rawWindow || "48 hours"}
+                        </span>
+                        <span style={{ padding: ".2rem .5rem", background: "var(--white)", border: "1px solid var(--line)", borderRadius: "2px" }}>
+                          Condition: {p1.promise?.conditionLabel || "Warehouse receipt"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Right: Revised Contradicting Promise */}
+                    <div
+                      style={{
+                        padding: "1.25rem",
+                        background: "var(--white)",
+                        border: "2px solid var(--blue)",
+                        borderRadius: "var(--radius)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          fontSize: ".78rem",
+                          color: "var(--blue)",
+                          fontFamily: "var(--font-mono)",
+                          marginBottom: ".5rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <span>LATER CONTRADICTING STATEMENT</span>
+                        <span>{formatDate(p2.reportedAt)}</span>
+                      </div>
+                      <blockquote
+                        style={{
+                          margin: "0 0 .75rem",
+                          fontFamily: "var(--font-serif)",
+                          fontSize: "1.25rem",
+                          lineHeight: 1.25,
+                          color: "var(--ink)",
+                        }}
+                      >
+                        “{p2.verbatimText}”
+                      </blockquote>
+                      <div style={{ display: "flex", gap: ".5rem", flexWrap: "wrap", fontSize: ".8rem" }}>
+                        <span style={{ padding: ".2rem .5rem", background: "var(--saffron-pale)", color: "var(--ink)", borderRadius: "2px", fontWeight: 600 }}>
+                          Changed To: {p2.promise?.rawWindow || "5 working days"}
+                        </span>
+                        <span style={{ padding: ".2rem .5rem", background: "var(--paper-deep)", border: "1px solid var(--line)", borderRadius: "2px" }}>
+                          Condition: {p2.promise?.conditionLabel || "Warehouse receipt"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Truthful Status Box (Non-negotiable requirement #7) */}
+                  <div
+                    style={{
+                      marginTop: "1.25rem",
+                      padding: "1rem 1.25rem",
+                      background: "var(--blue-pale)",
+                      borderLeft: "4px solid var(--blue)",
+                      borderRadius: "var(--radius)",
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: ".85rem",
+                    }}
+                  >
+                    <Info size={19} style={{ color: "var(--blue)", flexShrink: 0, marginTop: "2px" }} aria-hidden="true" />
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: ".92rem", color: "var(--ink)" }}>
+                        Warehouse receipt date unknown — no false deadline invented.
+                      </div>
+                      <div style={{ fontSize: ".85rem", color: "var(--ink-soft)", marginTop: ".25rem", lineHeight: 1.4 }}>
+                        Both support commitments state the refund period begins <em>after warehouse receipt</em>. Because receipt confirmation has not been recorded, Still Owed tracks the missing condition rather than inventing an overdue deadline.
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              );
+            })()}
 
             <div className="section-label">
               <h2>Promise history</h2>
@@ -1766,6 +1949,24 @@ function NewSource() {
     reader.onload = () => setPreview(reader.result as string);
     reader.readAsDataURL(selected);
   }
+  async function loadDemoFixture(fixtureUrl: string, filename: string) {
+    try {
+      setUploading(true);
+      const res = await fetch(fixtureUrl);
+      const blob = await res.blob();
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPreview(reader.result as string);
+        setFile(new File([blob], filename, { type: "image/png" }));
+        setError(null);
+        setUploading(false);
+      };
+      reader.readAsDataURL(blob);
+    } catch {
+      setError("Failed to load demo fixture image");
+      setUploading(false);
+    }
+  }
 
   async function handleSave() {
     if (!params.caseId) return;
@@ -1845,6 +2046,38 @@ function NewSource() {
                 <div className="notice">
                   <Shield size={15} aria-hidden="true" /> Check this image before reading. Remove bank details, identity
                   cards, or unrelated chats first.
+                </div>
+                <div
+                  style={{
+                    padding: ".85rem 1rem",
+                    background: "var(--paper-deep)",
+                    border: "1px solid var(--line)",
+                    borderRadius: "var(--radius)",
+                  }}
+                >
+                  <div style={{ fontSize: ".82rem", fontWeight: 600, color: "var(--ink-soft)", marginBottom: ".5rem" }}>
+                    ✨ HACKATHON DEMO SCREENSHOTS (1-CLICK LOAD)
+                  </div>
+                  <div style={{ display: "flex", gap: ".6rem", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="button button-secondary button-small"
+                      onClick={() => loadDemoFixture("/fixtures/demo-chat-12sep.png", "demo-chat-12sep.png")}
+                      data-testid="button-load-fixture-1"
+                    >
+                      <Sparkles size={14} aria-hidden="true" />
+                      <span>Fixture 1: 12 Sep (48 hours promise)</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="button button-secondary button-small"
+                      onClick={() => loadDemoFixture("/fixtures/demo-chat-15sep.png", "demo-chat-15sep.png")}
+                      data-testid="button-load-fixture-2"
+                    >
+                      <Sparkles size={14} aria-hidden="true" />
+                      <span>Fixture 2: 15 Sep (5 working days revision)</span>
+                    </button>
+                  </div>
                 </div>
                 <div className="field">
                   <label htmlFor="source-file">Screenshot image (PNG/JPEG, max 3 MiB)</label>

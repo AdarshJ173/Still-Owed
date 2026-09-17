@@ -1,0 +1,20 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm install -g pnpm
+        - pnpm install --no-frozen-lockfile
+    build:
+      commands:
+        - export PATH="$(pnpm bin):$PATH"
+        - pnpm --filter @workspace/db run push || true
+        - pnpm run build
+  artifacts:
+    baseDirectory: artifacts/still-owed/dist/public
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .pnpm-store/**/*

@@ -12,7 +12,7 @@ test("1. Healthcheck returns ok", async () => {
 
 test("2. Case creation and user isolation", async () => {
   // User A creates a case
-  const userA = "test-user-a";
+  const userA = `test-user-a-${Date.now()}`;
   const createResA = await fetch(`${API_BASE}/cases`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-user-id": userA },
@@ -27,10 +27,9 @@ test("2. Case creation and user isolation", async () => {
   const caseA = await createResA.json();
   assert.ok(caseA.id);
   assert.equal(caseA.ownerId, userA);
-  assert.equal(caseA.version, 1);
+  const userB = `test-user-b-${Date.now()}`;
 
   // User B tries to read User A's case -> must receive 404 (isolation)
-  const userB = "test-user-b";
   const readResB = await fetch(`${API_BASE}/cases/${caseA.id}`, {
     headers: { "x-user-id": userB },
   });

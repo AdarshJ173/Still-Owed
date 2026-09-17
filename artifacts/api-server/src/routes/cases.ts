@@ -218,17 +218,22 @@ router.post("/seed-demo", async (req: Request, res: Response): Promise<void> => 
       )
       .limit(1);
 
+    let caseId: string;
+
     if (existingDemo) {
-      res.json({ success: true, caseId: existingDemo.id, alreadyExisted: true });
-      return;
-    }
+      const existingRecords = await db
+        .select({ id: recordsTable.id })
+        .from(recordsTable)
+        .where(eq(recordsTable.caseId, existingDemo.id));
 
-    const caseId = `case-demo-${crypto.randomUUID()}`;
-
-    // 1. Create Demo Case
-    const [demoCase] = await db
-      .insert(casesTable)
-      .values({
+      if (existingRecords.length >= 2) {
+        res.json({ success: true, caseId: existingDemo.id, alreadyExisted: true });
+        return;
+      }
+      caseId = existingDemo.id;
+    } else {
+      caseId = `case-demo-${crypto.randomUUID()}`;
+      await db.insert(casesTable).values({
         id: caseId,
         ownerId: userId,
         merchantLabel: "Demo Store",
@@ -238,8 +243,8 @@ router.post("/seed-demo", async (req: Request, res: Response): Promise<void> => 
         desiredResolution: "refund",
         lifecycle: "active",
         version: 3,
-      })
-      .returning();
+      });
+    }
 
     // 2. Source 1 (12 Sep 2026)
     const source1Id = `source-${crypto.randomUUID()}`;
@@ -334,7 +339,7 @@ router.post("/seed-demo", async (req: Request, res: Response): Promise<void> => 
       relation: "changed_date",
     });
 
-    res.status(201).json({ success: true, caseId: demoCase.id, alreadyExisted: false });
+    res.status(201).json({ success: true, caseId, alreadyExisted: false });
   } catch (err: unknown) {
     logger.error({ err, userId }, "Failed to seed demo case");
     res.status(500).json({ error: "Could not seed demo case" });
