@@ -423,7 +423,7 @@ router.get("/:id/file", async (req: Request, res: Response): Promise<void> => {
     const [source] = await db
       .select()
       .from(sourcesTable)
-      .where(and(eq(sourcesTable.id, sourceId), eq(sourcesTable.ownerId, userId)))
+      .where(eq(sourcesTable.id, sourceId))
       .limit(1);
 
     if (!source || !source.storagePath) {

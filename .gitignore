@@ -52,4 +52,5 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+*.traineddata
 uploads/

@@ -1,4 +1,5 @@
 import { TextractClient, DetectDocumentTextCommand } from "@aws-sdk/client-textract";
+import { createWorker } from "tesseract.js";
 import { logger } from "./logger";
 
 export interface NormalizedBoundingBox {
@@ -17,7 +18,7 @@ export interface NormalizedLine {
 }
 
 export interface TextractResult {
-  provider: "aws-textract" | "synthetic-fixture";
+  provider: "aws-textract" | "local-ocr" | "note-parser";
   awsRequestId?: string;
   lines: NormalizedLine[];
   rawBlockCount: number;
@@ -45,69 +46,89 @@ function getTextractClient(): TextractClient | null {
 }
 
 /**
- * Deterministic synthetic OCR fixtures for development and testing
- * when AWS credentials are not yet supplied or in offline/fixture mode.
+ * Real local OCR extraction using Tesseract.js directly on the uploaded image bytes.
+ * Extracts text lines and maps normalized bounding box coordinates.
  */
-function getSyntheticFixtureLines(filename?: string, textHint?: string): NormalizedLine[] {
-  if (textHint && textHint.trim().length > 0) {
-    const rawLines = textHint.split(/\r?\n/).filter((l) => l.trim().length > 0);
-    return rawLines.map((line, idx) => ({
-      id: `line-${idx + 1}`,
-      text: line.trim(),
-      confidence: 99.4,
-      boundingBox: {
-        left: 0.05,
-        top: 0.1 + idx * 0.08,
-        width: 0.85,
-        height: 0.06,
-      },
-    }));
-  }
+async function extractLinesWithTesseract(imageBytes: Buffer): Promise<NormalizedLine[]> {
+  try {
+    const worker = await createWorker("eng");
+    const ret = await worker.recognize(imageBytes, {}, { tsv: true });
+    await worker.terminate();
+    const tsvLines = (ret.data.tsv || "").split("\n");
+    let imgW = 1,
+      imgH = 1;
+    const lines: NormalizedLine[] = [];
+    let currentLineWords: string[] = [];
+    let currentLineBox: { left: number; top: number; width: number; height: number } | null = null;
+    let currentConf = 92;
 
-  // Default fictional Demo Store return support conversation fixture
-  return [
-    {
-      id: "line-1",
-      text: "Demo Store Support · Order DEMO-104",
-      confidence: 99.8,
-      boundingBox: { left: 0.08, top: 0.05, width: 0.65, height: 0.04 },
-    },
-    {
-      id: "line-2",
-      text: "12 Sep 2026, 14:32 IST",
-      confidence: 99.2,
-      boundingBox: { left: 0.08, top: 0.12, width: 0.35, height: 0.035 },
-    },
-    {
-      id: "line-3",
-      text: "Support Agent: We have received your return request for the Noise-Cancelling Headphones (₹4,800).",
-      confidence: 98.9,
-      boundingBox: { left: 0.08, top: 0.22, width: 0.84, height: 0.05 },
-    },
-    {
-      id: "line-4",
-      text: "We will issue the refund within 48 hours after warehouse receipt.",
-      confidence: 99.6,
-      boundingBox: { left: 0.08, top: 0.32, width: 0.80, height: 0.055 },
-    },
-    {
-      id: "line-5",
-      text: "Please keep your return tracking ID handy for future reference.",
-      confidence: 98.7,
-      boundingBox: { left: 0.08, top: 0.42, width: 0.72, height: 0.04 },
-    },
-    {
-      id: "line-6",
-      text: "Thank you for contacting Demo Store Support.",
-      confidence: 99.1,
-      boundingBox: { left: 0.08, top: 0.50, width: 0.55, height: 0.035 },
-    },
-  ];
+    for (const raw of tsvLines) {
+      const parts = raw.split("\t");
+      if (parts.length < 12) continue;
+      const level = parseInt(parts[0] || "0", 10);
+      const left = parseInt(parts[6] || "0", 10);
+      const top = parseInt(parts[7] || "0", 10);
+      const width = parseInt(parts[8] || "0", 10);
+      const height = parseInt(parts[9] || "0", 10);
+      const conf = parseFloat(parts[10] || "0");
+      const text = parts[11] ? parts[11].trim() : "";
+
+      if (level === 1) {
+        imgW = width || 1;
+        imgH = height || 1;
+      } else if (level === 4) {
+        if (currentLineWords.length > 0 && currentLineBox) {
+          const lineText = currentLineWords.join(" ").trim();
+          if (lineText.length > 0) {
+            lines.push({
+              id: `line-${lines.length + 1}`,
+              text: lineText,
+              confidence: currentConf,
+              boundingBox: {
+                left: Math.max(0, currentLineBox.left / imgW),
+                top: Math.max(0, currentLineBox.top / imgH),
+                width: Math.min(1, currentLineBox.width / imgW),
+                height: Math.min(1, currentLineBox.height / imgH),
+              },
+            });
+          }
+        }
+        currentLineWords = [];
+        currentLineBox = { left, top, width, height };
+        currentConf = Math.round(conf > 0 ? conf : 90);
+      } else if (level === 5 && text) {
+        currentLineWords.push(text);
+      }
+    }
+
+    if (currentLineWords.length > 0 && currentLineBox) {
+      const lineText = currentLineWords.join(" ").trim();
+      if (lineText.length > 0) {
+        lines.push({
+          id: `line-${lines.length + 1}`,
+          text: lineText,
+          confidence: currentConf,
+          boundingBox: {
+            left: Math.max(0, currentLineBox.left / imgW),
+            top: Math.max(0, currentLineBox.top / imgH),
+            width: Math.min(1, currentLineBox.width / imgW),
+            height: Math.min(1, currentLineBox.height / imgH),
+          },
+        });
+      }
+    }
+
+    logger.info({ extractedLinesCount: lines.length }, "Extracted real lines using local OCR engine");
+    return lines;
+  } catch (err: unknown) {
+    logger.error({ err }, "Local Tesseract OCR execution failed");
+    return [];
+  }
 }
 
 /**
  * Execute Document Text Detection using AWS Textract DetectDocumentText
- * or fallback to synthetic fixture in development mode.
+ * with real local OCR fallback on any uploaded image bytes.
  */
 export async function detectScreenshotText(
   imageBytes?: Buffer,
@@ -115,6 +136,7 @@ export async function detectScreenshotText(
 ): Promise<TextractResult> {
   const textract = getTextractClient();
 
+  // 1. Try AWS Textract if configured
   if (textract && imageBytes && imageBytes.length > 0) {
     try {
       logger.info({ size: imageBytes.length, region: textractRegion }, "Calling AWS Textract DetectDocumentText");
@@ -160,23 +182,47 @@ export async function detectScreenshotText(
       };
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      logger.error({ err, message: errorMessage }, "AWS Textract call failed, falling back to local extraction");
-      // If AWS call fails, fallback to high-fidelity synthetic lines so app remains functional
-      const fallbackLines = getSyntheticFixtureLines(options?.filename, options?.textHint);
+      logger.warn({ err, message: errorMessage }, "AWS Textract call failed, running real local OCR on image bytes");
+    }
+  }
+
+  // 2. Real OCR on the actual uploaded image bytes
+  if (imageBytes && imageBytes.length > 0) {
+    const realLines = await extractLinesWithTesseract(imageBytes);
+    if (realLines.length > 0) {
       return {
-        provider: "synthetic-fixture",
-        lines: fallbackLines,
-        rawBlockCount: fallbackLines.length,
+        provider: "local-ocr",
+        lines: realLines,
+        rawBlockCount: realLines.length,
       };
     }
   }
 
-  // Development / Offline mode: deterministic OCR extraction
-  logger.info({ filename: options?.filename }, "Using development OCR extraction fixture");
-  const lines = getSyntheticFixtureLines(options?.filename, options?.textHint);
+  // 3. If manual text note, parse the user's note lines directly
+  if (options?.textHint && options.textHint.trim().length > 0) {
+    const rawLines = options.textHint.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    const noteLines: NormalizedLine[] = rawLines.map((line, idx) => ({
+      id: `line-${idx + 1}`,
+      text: line.trim(),
+      confidence: 99.4,
+      boundingBox: {
+        left: 0.05,
+        top: 0.08 + idx * 0.07,
+        width: 0.88,
+        height: 0.05,
+      },
+    }));
+    return {
+      provider: "note-parser",
+      lines: noteLines,
+      rawBlockCount: noteLines.length,
+    };
+  }
+
+  // Empty fallback
   return {
-    provider: "synthetic-fixture",
-    lines,
-    rawBlockCount: lines.length,
+    provider: "local-ocr",
+    lines: [],
+    rawBlockCount: 0,
   };
 }

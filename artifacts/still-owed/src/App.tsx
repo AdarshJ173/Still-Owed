@@ -395,7 +395,7 @@ function Home() {
                     style={{ justifyContent: "center" }}
                     data-testid="hero-start-onboarding"
                   >
-                    Sign In / Guided Tour <ArrowRight size={14} aria-hidden="true" />
+                    Sign in / Start <ArrowRight size={14} aria-hidden="true" />
                   </Link>
                   <Link
                     href="/cases"
@@ -403,7 +403,7 @@ function Home() {
                     style={{ justifyContent: "center" }}
                     data-testid="hero-open-cases"
                   >
-                    Open Desk / Demo
+                    My Cases Desk
                   </Link>
                 </div>
               </div>
@@ -415,11 +415,8 @@ function Home() {
           </div>
 
           <div>
-            <span className="fiction-label">
-              <span aria-hidden="true">◆</span> Clearly fictional · Demo Store
-            </span>
-            <div className="promise-paper" aria-label="Demo Store source-linked promise example">
-              <div className="eyebrow">Promise · 12 Sep 2026</div>
+            <div className="promise-paper" aria-label="Source-linked support commitment example">
+              <div className="eyebrow" style={{ color: "var(--blue)" }}>Confirmed Support Commitment</div>
               <blockquote>“We will issue the refund within 48 hours after warehouse receipt.”</blockquote>
               <div className="paper-rule" />
               <div className="paper-meta">
@@ -638,10 +635,10 @@ function Home() {
 function Onboarding() {
   const [, setLocation] = useLocation();
   const [step, setStep] = useState(1);
-  const [store, setStore] = useState("Demo Store");
-  const [item, setItem] = useState("Noise-Cancelling Headphones");
-  const [amount, setAmount] = useState("4800");
-  const [orderRef, setOrderRef] = useState("DEMO-104");
+  const [store, setStore] = useState("");
+  const [item, setItem] = useState("");
+  const [amount, setAmount] = useState("");
+  const [orderRef, setOrderRef] = useState("");
   const [adultAttested, setAdultAttested] = useState(true);
   const [creating, setCreating] = useState(false);
 
@@ -760,23 +757,8 @@ function Onboarding() {
             <span className="eyebrow">Step 2 of 3 · Your Return</span>
             <h1 style={{ fontSize: "2.4rem", margin: ".5rem 0 1rem" }}>What return is stuck?</h1>
             <p className="hero-copy" style={{ fontSize: "1.05rem" }}>
-              Enter the merchant and item details, or click below to use the fictional Demo Store example.
+              Enter the merchant and item details for the return you are following up on.
             </p>
-
-            <div className="action-row" style={{ marginBottom: "1.5rem" }}>
-              <button
-                className="button button-quiet button-small"
-                onClick={() => {
-                  setStore("Demo Store");
-                  setItem("Noise-Cancelling Headphones");
-                  setAmount("4800");
-                  setOrderRef("DEMO-104");
-                }}
-                data-testid="onboarding-prefill-demo"
-              >
-                Pre-fill with Demo Store example (₹4,800)
-              </button>
-            </div>
 
             <div className="form-grid">
               <div className="field">
@@ -1044,15 +1026,6 @@ function CasesPage() {
             <p>One clear record for each return conversation. Nothing here is a legal verdict.</p>
           </div>
           <div className="action-row">
-            <button
-              className="button button-secondary"
-              onClick={handleSeedDemo}
-              disabled={seeding}
-              data-testid="button-load-demo-top"
-            >
-              <Sparkles size={16} aria-hidden="true" />
-              <span>{seeding ? "Loading demo..." : "Load Demo Store Case (₹4,800)"}</span>
-            </button>
             <Link href="/cases/new" className="button button-primary" data-testid="button-new-case">
               <Plus size={17} aria-hidden="true" /> New case
             </Link>
@@ -1168,23 +1141,14 @@ function CasesPage() {
 
         {!loading && totalCount === 0 && (
           <div className="empty-state">
-            <h2>A clear desk, for now.</h2>
+            <h2>No return cases recorded yet.</h2>
             <p>
-              Start a case when a return becomes a repeated dispute, or load the fictional Demo Store return to explore
-              the complete flow.
+              Start a case when an online-shopping return becomes a repeated support dispute. Add your screenshots and
+              extract exact commitments.
             </p>
             <div className="action-row" style={{ justifyContent: "center", gap: ".85rem" }}>
-              <button
-                className="button button-primary"
-                onClick={handleSeedDemo}
-                disabled={seeding}
-                data-testid="button-empty-seed-demo"
-              >
-                <Sparkles size={16} aria-hidden="true" />
-                <span>{seeding ? "Loading demo..." : "Load Fictional Demo Store Return (₹4,800)"}</span>
-              </button>
-              <Link href="/cases/new" className="button button-secondary" data-testid="button-empty-new-case">
-                <Plus size={17} aria-hidden="true" /> Start new case
+              <Link href="/cases/new" className="button button-primary" data-testid="button-empty-new-case">
+                <Plus size={17} aria-hidden="true" /> Start a return case
               </Link>
             </div>
           </div>
@@ -1207,7 +1171,6 @@ function CaseCard({ item }: { item: CaseItem }) {
         <span className="status-line">
           <span className={`status-dot ${isClosed ? "closed" : ""}`} />{" "}
           {isClosed ? "Closed" : "Active"}
-          {item.merchantLabel === "Demo Store" ? " · Fictional demo" : ""}
         </span>
         <h2>{item.merchantLabel}</h2>
         <p>
@@ -1489,9 +1452,7 @@ function CaseDetail() {
 
         <div className="case-overview">
           <div>
-            <span className="eyebrow">
-              {data.case.merchantLabel === "Demo Store" ? "Clearly fictional · Demo Store" : "Private case record"}
-            </span>
+            <span className="eyebrow">Private Case Record</span>
             <h1>{data.case.merchantLabel}</h1>
             <p className="case-meta">
               {data.case.itemLabel} · Amount: {formatPaise(data.case.requestedAmountPaise)} · Opened{" "}
@@ -1949,24 +1910,6 @@ function NewSource() {
     reader.onload = () => setPreview(reader.result as string);
     reader.readAsDataURL(selected);
   }
-  async function loadDemoFixture(fixtureUrl: string, filename: string) {
-    try {
-      setUploading(true);
-      const res = await fetch(fixtureUrl);
-      const blob = await res.blob();
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPreview(reader.result as string);
-        setFile(new File([blob], filename, { type: "image/png" }));
-        setError(null);
-        setUploading(false);
-      };
-      reader.readAsDataURL(blob);
-    } catch {
-      setError("Failed to load demo fixture image");
-      setUploading(false);
-    }
-  }
 
   async function handleSave() {
     if (!params.caseId) return;
@@ -2048,50 +1991,54 @@ function NewSource() {
                   cards, or unrelated chats first.
                 </div>
                 <div
+                  className="upload-dropzone"
                   style={{
-                    padding: ".85rem 1rem",
-                    background: "var(--paper-deep)",
-                    border: "1px solid var(--line)",
+                    border: "2px dashed var(--line-dark)",
                     borderRadius: "var(--radius)",
+                    padding: "2.2rem 1.5rem",
+                    textAlign: "center",
+                    background: "var(--white)",
+                    cursor: "pointer",
+                    position: "relative",
                   }}
+                  onClick={() => document.getElementById("source-file")?.click()}
+                  data-testid="dropzone-upload"
                 >
-                  <div style={{ fontSize: ".82rem", fontWeight: 600, color: "var(--ink-soft)", marginBottom: ".5rem" }}>
-                    ✨ HACKATHON DEMO SCREENSHOTS (1-CLICK LOAD)
+                  <Upload size={32} style={{ color: "var(--blue)", margin: "0 auto .6rem" }} aria-hidden="true" />
+                  <div style={{ fontWeight: 600, fontSize: "1.05rem", marginBottom: ".3rem" }}>
+                    Click to browse or drop your screenshot here
                   </div>
-                  <div style={{ display: "flex", gap: ".6rem", flexWrap: "wrap" }}>
-                    <button
-                      type="button"
-                      className="button button-secondary button-small"
-                      onClick={() => loadDemoFixture("/fixtures/demo-chat-12sep.png", "demo-chat-12sep.png")}
-                      data-testid="button-load-fixture-1"
-                    >
-                      <Sparkles size={14} aria-hidden="true" />
-                      <span>Fixture 1: 12 Sep (48 hours promise)</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="button button-secondary button-small"
-                      onClick={() => loadDemoFixture("/fixtures/demo-chat-15sep.png", "demo-chat-15sep.png")}
-                      data-testid="button-load-fixture-2"
-                    >
-                      <Sparkles size={14} aria-hidden="true" />
-                      <span>Fixture 2: 15 Sep (5 working days revision)</span>
-                    </button>
+                  <div style={{ fontSize: ".85rem", color: "var(--ink-soft)" }}>
+                    Supports PNG, JPEG, or WebP up to 3 MiB
                   </div>
-                </div>
-                <div className="field">
-                  <label htmlFor="source-file">Screenshot image (PNG/JPEG, max 3 MiB)</label>
                   <input
                     id="source-file"
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
                     onChange={handleFileSelected}
+                    style={{ display: "none" }}
                     data-testid="input-source-file"
                   />
                 </div>
                 {preview && (
-                  <div className="preview-box">
-                    <img src={preview} alt="Selected screenshot preview" style={{ maxWidth: "100%", maxHeight: "300px" }} />
+                  <div
+                    style={{
+                      marginTop: "1.25rem",
+                      padding: "1rem",
+                      background: "var(--white)",
+                      border: "1px solid var(--line)",
+                      borderRadius: "var(--radius)",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".6rem" }}>
+                      <span style={{ fontWeight: 600, fontSize: ".9rem" }}>{file?.name || "Selected Screenshot"}</span>
+                      <span style={{ fontSize: ".8rem", color: "var(--ink-soft)" }}>
+                        {file?.size ? `${(file.size / 1024).toFixed(1)} KB` : ""}
+                      </span>
+                    </div>
+                    <div className="preview-box">
+                      <img src={preview} alt="Selected screenshot preview" style={{ maxWidth: "100%", maxHeight: "360px", objectFit: "contain" }} />
+                    </div>
                   </div>
                 )}
               </>
@@ -2146,6 +2093,7 @@ function ReviewSource() {
   const params = useParams<{ caseId: string; sourceId: string }>();
   const [, setLocation] = useLocation();
   const [source, setSource] = useState<SourceItem | null>(null);
+  const [imageBlobUrl, setImageBlobUrl] = useState<string | null>(null);
   const [lines, setLines] = useState<ExtractionLine[]>([]);
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [wording, setWording] = useState("");
@@ -2173,15 +2121,25 @@ function ReviewSource() {
       if (src) setSource(src);
       setEarlierRecords(caseDetail.records.filter((r) => r.kind === "promise"));
 
+      // Pre-load image as authenticated blob URL to ensure 100% reliable rendering
+      if (src?.storagePath) {
+        fetch(`/api/sources/${sourceId}/file`)
+          .then((r) => (r.ok ? r.blob() : null))
+          .then((b) => {
+            if (b) setImageBlobUrl(URL.createObjectURL(b));
+          })
+          .catch(() => {});
+      }
       // Try fetching OCR extraction
       try {
         const ext = await api.getExtraction(sourceId);
         setLines(ext.lines);
-        if (ext.lines.length > 0 && !wording) {
-          // Default to the first high-confidence promise sentence if detected
+        if (ext.lines.length > 0) {
           const candidate = ext.lines.find(
             (l) =>
               l.text.toLowerCase().includes("refund") ||
+              l.text.toLowerCase().includes("return") ||
+              l.text.toLowerCase().includes("worry-free") ||
               l.text.toLowerCase().includes("hours") ||
               l.text.toLowerCase().includes("days"),
           );
@@ -2190,7 +2148,8 @@ function ReviewSource() {
             const idx = ext.lines.indexOf(candidate);
             setSelectedIndices([idx]);
           } else {
-            setWording(ext.lines.map((l) => l.text).join(" "));
+            setWording(ext.lines[0]?.text || "");
+            setSelectedIndices([0]);
           }
         }
       } catch {
@@ -2210,7 +2169,7 @@ function ReviewSource() {
         const draftRes = await api.getDraft(sourceId);
         if (draftRes.draft) {
           const f = draftRes.draft.formFields;
-          if (typeof f.wording === "string") setWording(f.wording);
+          if (typeof f.wording === "string" && !f.wording.includes("Demo Store")) setWording(f.wording);
           if (typeof f.condition === "string") setCondition(f.condition);
           if (typeof f.windowText === "string") setWindowText(f.windowText);
         }
@@ -2340,9 +2299,19 @@ function ReviewSource() {
               {source?.storagePath ? (
                 <div style={{ position: "relative", display: "inline-block", maxWidth: "100%" }}>
                   <img
-                    src={`/api/sources/${source.id}/file`}
-                    alt="Evidence screenshot"
-                    style={{ display: "block", maxWidth: "100%", maxHeight: "500px", objectFit: "contain" }}
+                    src={imageBlobUrl || `/api/sources/${source.id}/file`}
+                    alt={source.originalFilename || "Support evidence screenshot"}
+                    style={{ display: "block", maxWidth: "100%", maxHeight: "540px", objectFit: "contain" }}
+                    onError={(e) => {
+                      if (!imageBlobUrl) {
+                        fetch(`/api/sources/${source.id}/file`)
+                          .then((r) => (r.ok ? r.blob() : null))
+                          .then((b) => {
+                            if (b) e.currentTarget.src = URL.createObjectURL(b);
+                          })
+                          .catch(() => {});
+                      }
+                    }}
                   />
                   {/* Bounding Box Overlay */}
                   {lines.map((line, idx) => {
@@ -2665,7 +2634,6 @@ function Settings() {
   const [, setLocation] = useLocation();
   const [statusMsg, setStatusMsg] = useState("");
   const [userEmail, setUserEmail] = useState<string>("Adarsh Jagannath");
-  const [seeding, setSeeding] = useState(false);
   const [showAccountDeleteConfirm, setShowAccountDeleteConfirm] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   useEffect(() => {
@@ -2684,21 +2652,6 @@ function Settings() {
       .join("")
       .slice(0, 2)
       .toUpperCase() || "AJ";
-
-  async function handleSeedDemo() {
-    setSeeding(true);
-    setStatusMsg("");
-    try {
-      const res = await api.seedDemoCase();
-      setStatusMsg("Fictional Demo Store case loaded into your casebook.");
-      setTimeout(() => setLocation(`/cases/${res.caseId}`), 1200);
-    } catch (err: unknown) {
-      setStatusMsg(err instanceof Error ? err.message : "Failed to load demo case");
-    } finally {
-      setSeeding(false);
-    }
-  }
-
   async function handleExportData() {
     try {
       window.location.href = "/api/account/export";
@@ -2815,29 +2768,6 @@ function Settings() {
             >
               <LogOut size={16} aria-hidden="true" />
               <span>Sign out of account</span>
-            </button>
-          </div>
-
-          {/* Seed / Reload Demo Store Case */}
-          <div className="source-card">
-            <div>
-              <h3>
-                <Sparkles size={16} style={{ color: "var(--saffron)", display: "inline", marginRight: ".4rem" }} aria-hidden="true" />
-                Fictional Demo Store Return (₹4,800)
-              </h3>
-              <p>
-                Reset or load the fictional Demo Store return case (Noise-Cancelling Headphones, order DEMO-104) with its 2
-                chat screenshots, 48-hour promise, warehouse receipt condition, and 5-day revised commitment.
-              </p>
-            </div>
-            <button
-              className="button button-secondary button-small"
-              onClick={handleSeedDemo}
-              disabled={seeding}
-              data-testid="button-settings-seed-demo"
-            >
-              <RefreshCw size={14} aria-hidden="true" />
-              <span>{seeding ? "Loading..." : "Load Demo Case"}</span>
             </button>
           </div>
 
