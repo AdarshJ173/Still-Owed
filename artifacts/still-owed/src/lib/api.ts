@@ -166,6 +166,12 @@ export function setStoredUserId(id: string): void {
   }
 }
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== "undefined" && window.location.hostname.includes("amplifyapp.com")
+    ? "https://still-owed.onrender.com"
+    : "");
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const userId = getStoredUserId();
   const headers = new Headers(options.headers || {});
@@ -175,7 +181,8 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(endpoint, {
+  const url = endpoint.startsWith("http") ? endpoint : `${API_BASE_URL}${endpoint}`;
+  const response = await fetch(url, {
     ...options,
     headers,
   });
